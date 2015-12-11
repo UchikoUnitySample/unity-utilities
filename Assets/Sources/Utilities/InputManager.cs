@@ -4,7 +4,7 @@ using System.Collections;
 using UnityEngine;
 using System.Collections;
 
-public interface InputManagerListener
+public interface IInputManagerListener
 {
 	void OnDown(Vector3 pos);
 	void OnFlick (Vector3 pos, Vector3 vec);
@@ -17,7 +17,7 @@ public interface InputManagerListener
 	void OnLongTap(Vector3 startPos,Vector3 endPos,float duration);
 }
 
-public class InputManagerListenerNull : InputManagerListener
+public class InputManagerListenerNull : IInputManagerListener
 {
 	public void OnDown(Vector3 pos)
 	{
@@ -62,7 +62,7 @@ public class InputManager : MonoBehaviour
 	Vector3 startPosition;
 	float startTime;
 
-	public InputManagerListener listener = new InputManagerListenerNull();
+	public IInputManagerListener listener = new InputManagerListenerNull();
 	public float flickThreshold = 0.1f;
 	public float longTapThreshold = 0.5f;
 	public float doubleTapThreshold = 0.2f;
