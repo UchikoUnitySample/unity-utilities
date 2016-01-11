@@ -123,8 +123,7 @@ public class InputManager : MonoBehaviour
 				isLongTapping = true;
 				OnLongTapBegin(StartMousePosInWorld);
 			} else if(
-				!isLongTapping 
-				&& (isDragging || (Time.time - lastUpdateTime) > dragEventSpan)
+				(isDragging || (Time.time - lastUpdateTime) > dragEventSpan)
 				&& (startPosition - Input.mousePosition).magnitude >= longTapDistanceThreshold
 			) {
 				lastUpdateTime = Time.time;
