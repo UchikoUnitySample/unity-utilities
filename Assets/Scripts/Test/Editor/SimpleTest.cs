@@ -35,6 +35,8 @@ public class SimpleTest {
     public void OptionNoneTest()
     {
 		Option<int> op = Option<int>.None();
+		Assert.False(op.IsDefined);
+		Assert.Throws(typeof(NoneToGetException), delegate { op.Get(); });
 		Assert.AreEqual(Option<int>.None(), op.Map((a) => 1));
 		Assert.AreEqual(Option<int>.None(), op.FlatMap((a) => new Some<int>(1)));
 		Assert.AreEqual(1, op.GetOrElse(() => 1));
@@ -46,5 +48,9 @@ public class SimpleTest {
 		Assert.False(op.Equals(new Some<int>(1)));
 		Assert.AreEqual("None", op.ToString());
 		Assert.AreEqual(0, op.GetHashCode());
+
+		var i = 0;
+		op.Foreach((a) => i++);
+		Assert.AreEqual(0, i);
     }
 }
