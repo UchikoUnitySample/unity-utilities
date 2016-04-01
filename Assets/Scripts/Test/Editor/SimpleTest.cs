@@ -31,6 +31,26 @@ public class SimpleTest {
 		Assert.False(" a ".IsNullOrWhiteSpace());
 	}
 
+	[Test]
+	public void OptionSomeTest()
+	{
+		Option<int> op = new Some<int>(1);
+		Assert.True(op.IsDefined);
+		Assert.AreEqual(1, op.Get());
+		Assert.AreEqual(new Some<int>(2), op.Map((a) => a+1));
+		Assert.AreEqual(new Some<int>(2), op.FlatMap((a) => new Some<int>(a+1)));
+		Assert.AreEqual(Option<int>.None(), op.FlatMap((a) => Option<int>.None()));
+		Assert.AreEqual(1, op.GetOrElse(() => 2));
+		Assert.AreEqual(1, op.GetOrElse(2));
+		Assert.AreEqual(new Some<int>(1), op.OrElse(() => new Some<int>(1)));
+		Assert.AreEqual(new Some<int>(1), op.OrElse(new Some<int>(1)));
+		Assert.AreEqual(new List<int>(){1}, op.ToList());
+		Assert.True(op.Equals(new Some<int>(1)));
+		Assert.False(op.Equals(new Some<int>(2)));
+		Assert.AreNotEqual(1, op.GetHashCode());
+		Assert.AreEqual("Some(1)", op.ToString());
+	}
+
     [Test]
     public void OptionNoneTest()
     {
