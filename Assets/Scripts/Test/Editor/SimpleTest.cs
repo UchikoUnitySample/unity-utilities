@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using NUnit.Framework;
+using System.Collections.Generic;
+using Hatool;
 
 public class SimpleTest {
 
@@ -28,4 +30,21 @@ public class SimpleTest {
 		Assert.True(" ".IsNullOrWhiteSpace());
 		Assert.False(" a ".IsNullOrWhiteSpace());
 	}
+
+    [Test]
+    public void OptionNoneTest()
+    {
+		Option<int> op = Option<int>.None();
+		Assert.AreEqual(Option<int>.None(), op.Map((a) => 1));
+		Assert.AreEqual(Option<int>.None(), op.FlatMap((a) => new Some<int>(1)));
+		Assert.AreEqual(1, op.GetOrElse(() => 1));
+		Assert.AreEqual(1, op.GetOrElse(1));
+		Assert.AreEqual(new Some<int>(1), op.OrElse(new Some<int>(1)));
+		Assert.AreEqual(new Some<int>(1), op.OrElse(() => new Some<int>(1)));
+		Assert.AreEqual((new List<int>()).Count, op.ToList().Count);
+		Assert.True(op.Equals(Option<int>.None()));
+		Assert.False(op.Equals(new Some<int>(1)));
+		Assert.AreEqual("None", op.ToString());
+		Assert.AreEqual(0, op.GetHashCode());
+    }
 }
