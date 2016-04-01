@@ -1,70 +1,81 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
+
+public class InputPositionInfo
+{
+	public Vector3 Screen {
+		get; private set;
+	}
+
+	public Vector3 World {
+		get; private set;
+	}
+
+	public InputPositionInfo(Vector3 screen, Vector3 world)
+	{
+		Screen = screen;
+		World = world;
+	}
+
+	public Vector3 GetCurrentScreenToWorld()
+	{
+		return Camera.main.ScreenToWorldPoint(Screen);
+	}
+}
 
 public interface IInputManagerListener
 {
-	void OnDown(Vector3 pos);
-	void OnFlick (Vector3 pos, Vector3 vec);
-	void OnTap (Vector3 pos);
-	void OnDoubleTap (Vector3 pos);
-	void OnDragBegin (Vector3 pos);
-	void OnDrag(Vector3 pos);
-	void OnDragEnd(Vector3 pos);
-	void OnLongTapBegin(Vector3 startPos);
-	void OnLongTap(Vector3 startPos,Vector3 endPos,float duration);
+	void OnDown(InputPositionInfo pos);
+	void OnFlick (InputPositionInfo startPos, InputPositionInfo endPos);
+	void OnTap (InputPositionInfo pos);
+	void OnDoubleTap (InputPositionInfo pos);
+	void OnDragBegin (InputPositionInfo pos);
+	void OnDrag(InputPositionInfo pos);
+	void OnDragEnd(InputPositionInfo pos);
+	void OnLongTapBegin(InputPositionInfo startPos);
+	void OnLongTap(InputPositionInfo pos);
+	void OnLongTapEnd(InputPositionInfo startPos,InputPositionInfo endPos,float duration);
 }
 
-public class InputManagerListenerNull : IInputManagerListener
+public class NullInputManager : IInputManagerListener
 {
-	public void OnDown(Vector3 pos)
-	{
-		Debug.Log ("OnDown");
-	}
-	public void OnFlick (Vector3 pos, Vector3 vec)
-	{
-		Debug.Log ("OnFlick");
-	}
-	public void OnTap (Vector3 pos)
-	{
-		Debug.Log ("OnTap");
-	}
-	public void OnDoubleTap (Vector3 pos)
-	{
-		Debug.Log ("OnDoubleTap");
-	}
-	public void OnDragBegin (Vector3 pos)
-	{
-		Debug.Log ("OnDragBegin");
-	}
-	public void OnDrag(Vector3 pos)
-	{
-		Debug.Log ("OnDrag");
-	}
-	public void OnDragEnd(Vector3 pos)
-	{
-		Debug.Log ("OnDragEnd");
-	}
-	public void OnLongTapBegin(Vector3 startPos)
-	{
-		Debug.Log ("OnLongTapBegin");
-	}
-	public void OnLongTap(Vector3 startPos,Vector3 endPos,float duration)
-	{
-		Debug.Log ("OnLongTap");
+	public void OnDown(InputPositionInfo pos){}
+	public void OnFlick (InputPositionInfo startPos, InputPositionInfo endPos){}
+	public void OnTap (InputPositionInfo pos){}
+	public void OnDoubleTap (InputPositionInfo pos){}
+	public void OnDragBegin (InputPositionInfo pos){}
+	public void OnDrag(InputPositionInfo pos){}
+	public void OnDragEnd(InputPositionInfo pos){}
+	public void OnLongTapBegin(InputPositionInfo startPos){}
+	public void OnLongTap(InputPositionInfo startPos){}
+	public void OnLongTapEnd(InputPositionInfo startPos,InputPositionInfo endPos,float duration){}
+
+	public static NullInputManager Instance {
+		get { return new NullInputManager(); }
 	}
 }
 
-public class InputManager : MonoBehaviour 
+public class InputManager : SingletonMonoBehaviour<InputManager>
 {
 	Vector3 startPosition;
 	float startTime;
 
-	public IInputManagerListener listener = new InputManagerListenerNull();
-	public float flickThreshold = 0.1f;
-	public float longTapThreshold = 0.5f;
-	public float doubleTapThreshold = 0.2f;
-	public float dragEventSpan = 0.2f;
-	public float longTapDistanceThreshold = 10.0f;
+	IInputManagerListener listener = NullInputManager.Instance;
+
+	[SerializeField]
+	float flickThreshold = 0.1f;
+
+	[SerializeField]
+	float longTapThreshold = 0.5f;
+
+	[SerializeField]
+	float doubleTapThreshold = 0.2f;
+
+	[SerializeField]
+	float dragEventSpan = 0.2f;
+
+	[SerializeField]
+	float longTapDistanceThreshold = 10.0f;
 
 	float lastUpdateTime;
 	float lastTapTime;
@@ -72,22 +83,28 @@ public class InputManager : MonoBehaviour
 	bool isDragging = false;
 	bool isLongTapping = false;
 
-	Vector3 CurrentMousePosInWorld {
+	InputPositionInfo CurrentMousePositionInfo {
 		get {
-			return Camera.main.ScreenToWorldPoint (Input.mousePosition);
+			return new InputPositionInfo(
+				Input.mousePosition,
+				Camera.main.ScreenToWorldPoint (Input.mousePosition)
+			);
 		}
 	}
 
-	Vector3 StartMousePosInWorld {
+	InputPositionInfo StartMousePositionInfo {
 		get {
-			return Camera.main.ScreenToWorldPoint (startPosition);
+			return new InputPositionInfo(
+				startPosition,
+				Camera.main.ScreenToWorldPoint (startPosition)
+			);
 		}
 	}
 
 	void Update ()
 	{
 		if (Input.GetMouseButtonDown (0)) {
-			OnDown (CurrentMousePosInWorld);
+			OnDown (CurrentMousePositionInfo);
 			startPosition = Input.mousePosition;
 			startTime = Time.time;
 			lastUpdateTime = Time.time;
@@ -95,33 +112,33 @@ public class InputManager : MonoBehaviour
 			isLongTapping = false;
 		}  else if (Input.GetMouseButtonUp (0)) {
 			if(isDragging){
-				OnDragEnd (CurrentMousePosInWorld);
+				OnDragEnd (CurrentMousePositionInfo);
 			} else if (isLongTapping) {
-				OnLongTap(
-					StartMousePosInWorld,
-					CurrentMousePosInWorld,
+				OnLongTapEnd(
+					StartMousePositionInfo,
+					CurrentMousePositionInfo,
 					Time.time - startTime
 				);
 			} else if (Time.time - startTime < flickThreshold &&
 				(startPosition - Input.mousePosition).magnitude * 10 > Screen.width)
 			{
-				var end = CurrentMousePosInWorld;
-				var start = StartMousePosInWorld;
-				OnFlick (start, end - start);
+				OnFlick (StartMousePositionInfo, CurrentMousePositionInfo);
 			} else {
 				if(Time.time - lastTapTime < doubleTapThreshold) {
 					lastTapTime = Time.time;
-					OnDoubleTap (CurrentMousePosInWorld);
+					OnDoubleTap (CurrentMousePositionInfo);
 				} else {
 					lastTapTime = Time.time;
-					OnTap (CurrentMousePosInWorld);
+					OnTap (CurrentMousePositionInfo);
 				}
 			}
 		} else if (Input.GetMouseButton (0)) {
 			if (!isDragging && !isLongTapping && Time.time - startTime > longTapThreshold &&
 				(startPosition - Input.mousePosition).magnitude < longTapDistanceThreshold){
 				isLongTapping = true;
-				OnLongTapBegin(StartMousePosInWorld);
+				OnLongTapBegin(StartMousePositionInfo);
+			} else if (isLongTapping) {
+				OnLongTap(CurrentMousePositionInfo);
 			} else if(
 				(isDragging || (Time.time - lastUpdateTime) > dragEventSpan)
 				&& (startPosition - Input.mousePosition).magnitude >= longTapDistanceThreshold
@@ -129,58 +146,73 @@ public class InputManager : MonoBehaviour
 				lastUpdateTime = Time.time;
 
 				if(isDragging) {
-					OnDrag(CurrentMousePosInWorld);
+					OnDrag(CurrentMousePositionInfo);
 				} else {
-					OnDragBegin(CurrentMousePosInWorld);
+					OnDragBegin(CurrentMousePositionInfo);
 				}
 
 				isDragging = true;
-			} 
+			}
 		}
 	}
 
-	void OnDown (Vector3 pos)
+	public void AttachListener(IInputManagerListener l)
 	{
-		this.listener.OnDown (pos);
+		listener = l;
 	}
 
-	void OnFlick(Vector3 pos,Vector3 vec)
+	public void DetachListener()
 	{
-		this.listener.OnFlick (pos, vec);
+		listener = NullInputManager.Instance;
 	}
 
-	void OnTap(Vector3 pos)
+	void OnDown (InputPositionInfo pos)
 	{
-		this.listener.OnTap (pos);
+		listener.OnDown(pos);
 	}
 
-	void OnDoubleTap(Vector3 pos)
+	void OnFlick(InputPositionInfo start, InputPositionInfo end)
 	{
-		this.listener.OnDoubleTap (pos);
+		listener.OnFlick(start, end);
 	}
 
-	void OnDragBegin(Vector3 pos)
+	void OnTap(InputPositionInfo pos)
 	{
-		this.listener.OnDragBegin (pos);
+		listener.OnTap(pos);
 	}
 
-	void OnDrag(Vector3 pos)
+	void OnDoubleTap(InputPositionInfo pos)
 	{
-		this.listener.OnDrag (pos);
+		listener.OnDoubleTap(pos);
 	}
 
-	void OnDragEnd(Vector3 pos)
+	void OnDragBegin(InputPositionInfo pos)
 	{
-		this.listener.OnDragEnd (pos);
+		listener.OnDragBegin(pos);
 	}
 
-	void OnLongTapBegin(Vector3 startPos)
+	void OnDrag(InputPositionInfo pos)
 	{
-		this.listener.OnLongTapBegin (startPos);
+		listener.OnDrag(pos);
 	}
 
-	void OnLongTap(Vector3 startPos,Vector3 endPos,float duration)
+	void OnDragEnd(InputPositionInfo pos)
 	{
-		this.listener.OnLongTap (startPos, endPos, duration);
+		listener.OnDragEnd(pos);
+	}
+
+	void OnLongTapBegin(InputPositionInfo startPos)
+	{
+		listener.OnLongTapBegin(startPos);
+	}
+
+	void OnLongTap(InputPositionInfo pos)
+	{
+		listener.OnLongTap(pos);
+	}
+
+	void OnLongTapEnd(InputPositionInfo startPos,InputPositionInfo endPos,float duration)
+	{
+		listener.OnLongTapEnd(startPos, endPos, duration);
 	}
 }
